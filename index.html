@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Graveyard — Daily Task Summoner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@400;600;900&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root {
+  --void: #07090f;
+  --deep: #0d1018;
+  --stone: #1e2128;
+  --stone-mid: #2e333d;
+  --stone-light: #8a8f7a;
+  --moon: #e8e0c4;
+  --moonlit: #c9c4b0;
+  --lichen: #3a5c38;
+  --lichen-bright: #4e7a4b;
+  --mist: rgba(180,190,200,0.06);
+  --glow: rgba(200,210,180,0.12);
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--void);
+  color: var(--moonlit);
+  font-family: 'IM Fell English', Georgia, serif;
+  overflow-x: hidden;
+}
+
+/* ── Starfield ─────────────────────────────── */
+#stars {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.star {
+  position: absolute;
+  border-radius: 50%;
+  background: #fff;
+  animation: twinkle var(--d, 3s) var(--delay, 0s) infinite alternate ease-in-out;
+}
+@keyframes twinkle { from { opacity: var(--lo, 0.2); } to { opacity: var(--hi, 0.9); } }
+
+/* ── Moon ──────────────────────────────────── */
+#moon {
+  position: fixed;
+  top: 48px; right: 72px;
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 38%, #f0e8cc, #c8bc94);
+  box-shadow: 0 0 40px 12px rgba(220,210,160,0.18), 0 0 90px 30px rgba(200,190,130,0.08);
+  z-index: 1;
+  pointer-events: none;
+}
+#moon::after {
+  content: '';
+  position: absolute;
+  top: 12px; left: 16px;
+  width: 18px; height: 14px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.10);
+}
+
+/* ── Fog ───────────────────────────────────── */
+#fog {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 220px;
+  pointer-events: none;
+  z-index: 2;
+  overflow: hidden;
+}
+.fog-layer {
+  position: absolute;
+  bottom: 0; left: -100%;
+  width: 300%;
+  height: 100%;
+  opacity: 0;
+  animation: driftfog var(--fog-d, 18s) var(--fog-del, 0s) infinite linear;
+}
+.fog-layer::before, .fog-layer::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  border-radius: 50%;
+}
+.fog-layer:nth-child(1) { --fog-d: 22s; --fog-del: 0s; opacity: 0.55; }
+.fog-layer:nth-child(2) { --fog-d: 30s; --fog-del: -8s; opacity: 0.4; }
+.fog-layer:nth-child(3) { --fog-d: 18s; --fog-del: -14s; opacity: 0.3; }
+.fog-layer { background: radial-gradient(ellipse 60% 80px at 50% 100%, rgba(160,175,185,0.22) 0%, transparent 100%); }
+@keyframes driftfog { from { transform: translateX(0); } to { transform: translateX(33.33%); } }
+
+/* Ground gradient */
+#ground {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 80px;
+  background: linear-gradient(to top, #0a0f0a, transparent);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ── Page layout ───────────────────────────── */
+.page {
+  position: relative;
+  z-index: 3;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 64px 24px 180px;
+}
+
+/* ── Header ────────────────────────────────── */
+header {
+  text-align: center;
+  margin-bottom: 56px;
+}
+.title-eyebrow {
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.35em;
+  color: var(--stone-light);
+  margin-bottom: 14px;
+  display: block;
+}
+h1 {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 700;
+  color: var(--moon);
+  line-height: 1.15;
+  text-shadow: 0 0 60px rgba(220,210,160,0.25);
+  margin-bottom: 16px;
+}
+.subtitle {
+  font-style: italic;
+  color: var(--stone-light);
+  font-size: 1rem;
+  max-width: 52ch;
+  line-height: 1.6;
+}
+
+/* ── Rule banner ───────────────────────────── */
+.rule-banner {
+  border: 1px solid rgba(138,143,122,0.2);
+  background: rgba(58,92,56,0.08);
+  padding: 10px 22px;
+  margin-bottom: 52px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  color: var(--lichen-bright);
+  text-align: center;
+  max-width: 520px;
+}
+
+/* ── Category label ────────────────────────── */
+.section-label {
+  font-family: 'Cinzel', serif;
+  font-size: 0.68rem;
+  letter-spacing: 0.3em;
+  color: var(--stone-light);
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+/* ── Tombstones ────────────────────────────── */
+.tombstones {
+  display: flex;
+  gap: 28px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 52px;
+}
+
+.tombstone-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  cursor: pointer;
+}
+
+.tombstone {
+  width: 160px;
+  background: var(--stone);
+  border: 1px solid rgba(138,143,122,0.15);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  position: relative;
+  user-select: none;
+}
+
+/* Arch top */
+.tombstone-arch {
+  width: 160px;
+  height: 80px;
+  background: var(--stone);
+  border: 1px solid rgba(138,143,122,0.15);
+  border-bottom: none;
+  border-radius: 80px 80px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s, border-color 0.3s;
+}
+.tombstone-body {
+  width: 160px;
+  padding: 14px 16px 20px;
+  background: var(--stone);
+  border: 1px solid rgba(138,143,122,0.15);
+  border-top: none;
+  text-align: center;
+  transition: background 0.3s, border-color 0.3s;
+}
+.tombstone-stub {
+  width: 80px;
+  height: 14px;
+  background: var(--stone-mid);
+  border: 1px solid rgba(138,143,122,0.12);
+  border-top: none;
+}
+
+.tombstone-wrap:hover .tombstone-arch,
+.tombstone-wrap:hover .tombstone-body {
+  background: var(--stone-mid);
+  border-color: rgba(138,143,122,0.35);
+}
+.tombstone-wrap:hover .tombstone-arch { transform: translateY(-4px); }
+.tombstone-wrap:hover .tombstone-body { transform: translateY(-4px); }
+
+.tombstone-wrap.selected .tombstone-arch,
+.tombstone-wrap.selected .tombstone-body {
+  background: #1a2318;
+  border-color: var(--lichen-bright);
+  box-shadow: 0 0 24px rgba(78,122,75,0.2);
+}
+.tombstone-wrap.selected .tombstone-arch { transform: translateY(-6px); }
+.tombstone-wrap.selected .tombstone-body { transform: translateY(-6px); }
+
+.cross {
+  font-size: 1.6rem;
+  color: var(--stone-light);
+  transition: color 0.3s;
+  line-height: 1;
+}
+.tombstone-wrap.selected .cross { color: var(--lichen-bright); }
+
+.tomb-name {
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--moon);
+  margin-bottom: 6px;
+}
+.tomb-range {
+  font-family: 'Cinzel', serif;
+  font-size: 0.6rem;
+  color: var(--stone-light);
+  letter-spacing: 0.1em;
+}
+.tomb-count {
+  font-style: italic;
+  font-size: 0.78rem;
+  color: var(--stone-light);
+  margin-top: 5px;
+}
+
+/* ── Summon button ─────────────────────────── */
+.summon-wrap {
+  text-align: center;
+  margin-bottom: 52px;
+}
+#summonBtn {
+  font-family: 'Cinzel', serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  color: var(--moon);
+  background: transparent;
+  border: 1px solid rgba(138,143,122,0.4);
+  padding: 14px 40px;
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.3s, color 0.3s, box-shadow 0.3s;
+  overflow: hidden;
+}
+#summonBtn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(58,92,56,0.15), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+#summonBtn:hover {
+  border-color: var(--lichen-bright);
+  box-shadow: 0 0 28px rgba(78,122,75,0.2);
+}
+#summonBtn:hover::before { opacity: 1; }
+#summonBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.summon-note {
+  font-style: italic;
+  font-size: 0.78rem;
+  color: var(--stone-light);
+  margin-top: 12px;
+}
+
+/* ── Task card ─────────────────────────────── */
+#taskCard {
+  max-width: 560px;
+  width: 100%;
+  border: 1px solid rgba(138,143,122,0.2);
+  background: linear-gradient(160deg, #0f1218, #0b0e14);
+  padding: 36px 40px;
+  position: relative;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+  display: none;
+}
+#taskCard.visible {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+#taskCard::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 40%;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--lichen-bright), transparent);
+}
+.task-label {
+  font-family: 'Cinzel', serif;
+  font-size: 0.62rem;
+  letter-spacing: 0.3em;
+  color: var(--lichen-bright);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.task-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(78,122,75,0.25);
+}
+.task-id {
+  font-family: 'Cinzel', serif;
+  font-size: 2.4rem;
+  font-weight: 900;
+  color: rgba(138,143,122,0.15);
+  position: absolute;
+  top: 28px; right: 36px;
+  line-height: 1;
+}
+.task-title {
+  font-family: 'Cinzel', serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--moon);
+  margin-bottom: 14px;
+  line-height: 1.4;
+  max-width: 38ch;
+}
+.task-desc {
+  font-style: italic;
+  font-size: 0.95rem;
+  line-height: 1.75;
+  color: var(--moonlit);
+  margin-bottom: 22px;
+}
+.task-rule {
+  font-family: 'Cinzel', serif;
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  color: var(--lichen-bright);
+  border-top: 1px solid rgba(78,122,75,0.2);
+  padding-top: 16px;
+}
+
+/* ── Locked state ──────────────────────────── */
+.locked-banner {
+  font-family: 'Cinzel', serif;
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  color: var(--stone-light);
+  text-align: center;
+  margin-top: 16px;
+  display: none;
+}
+.locked-banner.show { display: block; }
+
+/* ── Divider ornament ──────────────────────── */
+.ornament {
+  text-align: center;
+  color: var(--stone-light);
+  font-size: 0.9rem;
+  letter-spacing: 0.4em;
+  margin: 36px 0;
+  opacity: 0.5;
+}
+
+/* ── Responsive ────────────────────────────── */
+@media (max-width: 540px) {
+  .tombstones { gap: 16px; }
+  .tombstone, .tombstone-arch, .tombstone-body { width: 130px; }
+  .tombstone-arch { width: 130px; border-radius: 65px 65px 0 0; }
+  h1 { font-size: 1.8rem; }
+  #taskCard { padding: 28px 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .star, .fog-layer { animation: none; }
+  #taskCard { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+<div id="moon"></div>
+<div id="ground"></div>
+<div id="fog">
+  <div class="fog-layer"></div>
+  <div class="fog-layer"></div>
+  <div class="fog-layer"></div>
+</div>
+
+<div class="page">
+  <header>
+    <span class="title-eyebrow">Est. in darkness — maintained in discipline</span>
+    <h1>The Graveyard</h1>
+    <p class="subtitle">Each dawn, one soul is summoned. Choose your ground, draw your task. You do not leave until it is finished.</p>
+  </header>
+
+  <div class="rule-banner">✦ &nbsp; The Rule: no new task may be drawn until today's is buried &nbsp; ✦</div>
+
+  <p class="section-label">Choose your ground</p>
+
+  <div class="tombstones">
+    <div class="tombstone-wrap" data-category="human" onclick="selectCategory(this)">
+      <div class="tombstone-arch"><span class="cross">✝</span></div>
+      <div class="tombstone-body">
+        <div class="tomb-name">Human<br>Vector</div>
+        <div class="tomb-range">01 – 20</div>
+        <div class="tomb-count">16 tasks</div>
+      </div>
+      <div class="tombstone-stub"></div>
+    </div>
+
+    <div class="tombstone-wrap" data-category="high" onclick="selectCategory(this)">
+      <div class="tombstone-arch"><span class="cross">✝</span></div>
+      <div class="tombstone-body">
+        <div class="tomb-name">High<br>Level</div>
+        <div class="tomb-range">31 – 50</div>
+        <div class="tomb-count">20 tasks</div>
+      </div>
+      <div class="tombstone-stub"></div>
+    </div>
+
+    <div class="tombstone-wrap" data-category="low" onclick="selectCategory(this)">
+      <div class="tombstone-arch"><span class="cross">✝</span></div>
+      <div class="tombstone-body">
+        <div class="tomb-name">Low<br>Level</div>
+        <div class="tomb-range">51 – 70</div>
+        <div class="tomb-count">20 tasks</div>
+      </div>
+      <div class="tombstone-stub"></div>
+    </div>
+  </div>
+
+  <div class="summon-wrap">
+    <button id="summonBtn" onclick="summonTask()" disabled>Summon Today's Task</button>
+    <p class="summon-note" id="summonNote">Select a ground above to begin</p>
+    <p class="locked-banner" id="lockedBanner" >A task already walks with you today. Complete it first.</p>
+  </div>
+
+  <div class="ornament">— ✦ —</div>
+
+  <div id="taskCard">
+    <div class="task-id" id="taskIdBg"></div>
+    <div class="task-label" id="taskCatLabel">Today's Task</div>
+    <div class="task-title" id="taskTitle"></div>
+    <div class="task-desc" id="taskDesc"></div>
+    <div class="task-rule">✦ &nbsp; You may not move on until this task is buried &nbsp; ✦</div>
+  </div>
+</div>
+
+<script>
+// ── Stars ──────────────────────────────────────
+const canvas = document.getElementById('stars');
+const ctx = canvas.getContext('2d');
+let stars = [];
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  generateStars();
+  drawStars();
+}
+function generateStars() {
+  stars = Array.from({ length: 180 }, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height * 0.75,
+    r: Math.random() * 1.2 + 0.2,
+    lo: Math.random() * 0.2 + 0.1,
+    hi: Math.random() * 0.6 + 0.3,
+    phase: Math.random() * Math.PI * 2,
+    speed: Math.random() * 0.0008 + 0.0003,
+  }));
+}
+function drawStars() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const now = Date.now();
+  stars.forEach(s => {
+    const opacity = s.lo + (s.hi - s.lo) * (0.5 + 0.5 * Math.sin(now * s.speed + s.phase));
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,240,${opacity})`;
+    ctx.fill();
+  });
+  requestAnimationFrame(drawStars);
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// ── Task data ──────────────────────────────────
+const TASKS = {
+  human: [
+    { id:'01', title:'OSINT on a Friend', desc:'Conduct a structured OSINT investigation on a consenting friend. Map their full digital footprint across platforms, usernames, employer info, and metadata. Produce a written report.' },
+    { id:'02', title:'GeoOSINT on an Image', desc:'Given a photo stripped of metadata, identify its exact or approximate location using only visual clues: signage, architecture, vegetation, shadows, road markings.' },
+    { id:'03', title:'Trace Labs Weekly Challenges', desc:'Complete the current week\'s missing-persons-style OSINT challenges on Trace Labs. Document your methodology in enough detail that someone else could replicate your findings.' },
+    { id:'04', title:'Phishing Email on a Friend', desc:'With explicit written consent, craft and send a realistic but harmless phishing email to a friend. Track whether it\'s clicked or reported. Debrief them thoroughly afterward.' },
+    { id:'05', title:'Deep OSINT on Self or Friend', desc:'Go beyond surface OSINT: chase data brokers, old forum accounts, breach data, archived pages, and years of username history. Produce a full sensitivity-categorized report.' },
+    { id:'07', title:'Fake Social Account Observation', desc:'Build a believable sock-puppet persona on a social platform and document who it attracts and how. Log every interaction. Never impersonate a real person.' },
+    { id:'08', title:'Clone a Famous Site Locally', desc:'Recreate the front-end and core functionality of a well-known website running only on localhost. Focus on functionality over aesthetics. Never deploy publicly.' },
+    { id:'09', title:'GeoGuessr 3-Win Streak', desc:'Play GeoGuessr in multiplayer/duel mode and win three rounds consecutively against a live opponent using visual clues only. Screenshot your streak as proof.' },
+    { id:'10', title:'Build a Burner OSINT Persona', desc:'Construct a fully consistent fictional identity across at least two platforms. Keep a "persona bible." Audit it yourself after one week for inconsistencies.' },
+    { id:'11', title:'Bypass Your Own Phishing Filter', desc:'Set up an open-source email security layer then craft messages designed to slip past it. Vary one evasion technique at a time and log what gets caught vs. missed.' },
+    { id:'12', title:'Flood an OSINT Tactic with Noise', desc:'Pick one OSINT technique used against you (username search, reverse image) and deliberately flood it with plausible decoy data about yourself. Measure the degraded accuracy.' },
+    { id:'13', title:'Search for Your Own Dark Web Data', desc:'Use Have I Been Pwned, your password manager\'s breach monitor, and Tor Browser (passively) to check if your personal data has surfaced in any known leaks.' },
+    { id:'14', title:'Deepfake Detection Test', desc:'Score yourself against a labeled set of 10+ AI-generated vs. real audio/video samples. After each, identify the specific cue that gave it away or fooled you.' },
+    { id:'15', title:'Reduce Your Digital Footprint', desc:'Spend a day closing unused accounts (JustDeleteMe), opting out of data brokers, and tightening privacy settings. Document every removal and compare before/after.' },
+    { id:'16', title:'Build Rapport with a New Circle', desc:'Meet a new group of people and practice active listening, mirroring, and open-ended questioning. Reflect on what built genuine trust versus what felt forced.' },
+  ],
+  high: [
+    { id:'31', title:'Find a Vuln in an Open Source App', desc:'Audit a real open source application manually for logic bugs, injection points, or broken auth. If you find something real, submit a responsible disclosure.' },
+    { id:'32', title:'Recreate a Recent CVE from Scratch', desc:'Pick a CVE from the last 12 months, set up the vulnerable environment, and reproduce it yourself from the advisory alone. Explain the root cause and the patch.' },
+    { id:'33', title:'Bug Bounty: Find One Vulnerability', desc:'Register on HackerOne or Bugcrowd, pick a beginner-friendly scope, and find and submit at least one valid vulnerability. Quality of write-up matters as much as severity.' },
+    { id:'34', title:'Honeypot Vulnerable Website', desc:'Deploy DVWA or Juice Shop on a VPS with full logging. Run it for a week and report what hit it: scan types, IP origins, payloads attempted, attacker objectives.' },
+    { id:'35', title:'Write a Burp/ZAP Extension', desc:'Automate a recon step you do manually by writing a custom Burp or ZAP extension. Test it on DVWA or Juice Shop before pointing it at anything real.' },
+    { id:'36', title:'AD Lab: BadBlood + GOAD', desc:'Build a Windows AD lab with BadBlood and GOAD. Attack it with BloodHound, Kerberoasting, and ACL abuse. Achieve Domain Admin via at least two distinct paths.' },
+    { id:'37', title:'Document Beacon + Hit Tracking', desc:'Embed a Canarytoken or tracking beacon in a document you control and share it with a consenting person. Log all metadata that comes back on callback.' },
+    { id:'38', title:'Establish Persistence on Own Machine', desc:'After gaining access to a machine you own, plant a persistent foothold that survives a reboot. Then detect and fully remove it using Autoruns or equivalent.' },
+    { id:'39', title:'EDR Bypass with Obfuscation', desc:'Install Wazuh or LimaCharlie on a lab VM, then attempt to evade it using obfuscation techniques. Change one variable at a time. Log what fires and what misses.' },
+    { id:'40', title:'DLP Bypass through Obfuscation', desc:'Set up OpenDLP or similar, then exfiltrate dummy sensitive data using encoding, steganography, and DNS tunneling. Document every channel: caught vs. missed.' },
+    { id:'41', title:'Firewall Bypass via Stealth', desc:'Set up pfSense or iptables with strict outbound rules then tunnel traffic out using ICMP, DNS, or HTTPS channels. Log which rule change would have stopped it.' },
+    { id:'42', title:'SIEM Evasion: Full Attack Chain', desc:'Build a SIEM with Wazuh or ELK, write Sigma rules, then execute a full attack chain trying to stay undetected at every stage. Map what was caught vs. missed.' },
+    { id:'43', title:'WAF Bypass', desc:'Deploy ModSecurity + OWASP CRS in front of DVWA. Attempt to land SQLi, XSS, and command injection past it using encoding and logic bypass techniques.' },
+    { id:'44', title:'External Network Mapping', desc:'Map your org\'s or university\'s externally visible attack surface using Shodan, Amass, crt.sh, and DNSdumpster. Get written permission. Produce an attack surface report.' },
+    { id:'45', title:'Internal Network Mapping', desc:'From inside the network with permission, discover all hosts, services, and OS fingerprints using Nmap. Map what a regular user account can reach vs. an admin.' },
+    { id:'46', title:'Build a Custom C2 Framework', desc:'Write a minimal C2 agent and server from scratch in Python or Go. Test whether your own EDR detects it. Iterate on evasion. Keep everything air-gapped.' },
+    { id:'47', title:'Domain Fronting / Traffic Shaping', desc:'Disguise exfil traffic as legitimate cloud traffic or slow-exfil it to blend with baseline. Check whether your SIEM or DLP notices. Build the detection rule afterward.' },
+    { id:'48', title:'LOLBins vs. EDR', desc:'Work through the LOLBAS list in a Windows VM with an EDR running. Run at least 10 techniques via Atomic Red Team. Map every detection gap by technique ID.' },
+    { id:'49', title:'Authorized Physical Penetration', desc:'With written authorization, attempt physical access to a building: tailgating, social engineering, badge bypass. Carry your letter. Report every control that failed.' },
+    { id:'50', title:'Threat Actor Research + Reproduce TTPs', desc:'Pick an APT group, read all public reporting, map every technique to ATT&CK, and simulate at least 5 of their TTPs in an isolated lab using Atomic Red Team.' },
+  ],
+  low: [
+    { id:'51', title:'Reverse Engineer a Linux Utility', desc:'Pick a compiled Linux binary and reverse-engineer it with Ghidra or Radare2. Name at least five functions correctly and cross-validate against the actual source code.' },
+    { id:'52', title:'Reverse Engineer an App Legally', desc:'Pick a closed-source app you own a license for and reverse one specific question about it: how does the license check work? What is this file format? Document your methodology.' },
+    { id:'53', title:'Wireshark: Full Traffic Inspection', desc:'Capture 30+ minutes of real traffic on your network. Identify every distinct external host your devices contact. Flag anything unencrypted or unexpected.' },
+    { id:'54', title:'MalwareBazaar Sample Analysis', desc:'Download a documented sample, do static analysis first, then run it in an isolated sandbox. Produce a report: hash, file type, IOCs, persistence mechanism, behavior summary.' },
+    { id:'55', title:'Firmware Forensics', desc:'Download public firmware for a consumer device. Extract with Binwalk, scan with Firmwalker. Find hardcoded credentials, private keys, or insecure services.' },
+    { id:'56', title:'Memory Dump Analysis', desc:'Capture a full RAM dump of your machine. Analyze with Volatility 3: extract process list, network connections, and a test artifact you planted deliberately before dumping.' },
+    { id:'57', title:'Full Disk Image Analysis', desc:'Create a forensic image of a drive and mount it read-only in Autopsy. Produce a timeline, recover one deleted file, and identify three artifact categories.' },
+    { id:'58', title:'Registry Forensics', desc:'Analyze Windows registry hives with Registry Explorer. Find every USB device ever connected, all run-key persistence entries, and the 10 most recently executed apps.' },
+    { id:'59', title:'Event Log Forensics', desc:'Analyze your system logs with Chainsaw + Sigma rules. Identify your own logon history, find one unexpected event, and map it to a MITRE ATT&CK technique ID.' },
+    { id:'60', title:'Build a Rootkit Detector', desc:'Write a script that baselines running processes, kernel modules, open ports, and file hashes on a clean system. Then detect deliberate changes you introduce afterward.' },
+    { id:'61', title:'Build a Tiny Fuzzer', desc:'Write a mutation-based fuzzer in Python and point it at a CLI tool you compiled with AddressSanitizer. Run 10,000+ iterations. Find and reproduce at least one crash.' },
+    { id:'62', title:'USB Traffic Analysis', desc:'Capture USB traffic from a device you own (keyboard, mouse, or storage) using USBPcap or Linux usbmon. Decode at least one meaningful transaction from the packets.' },
+    { id:'63', title:'Rogue AP in a Lab', desc:'Broadcast a common SSID using hostapd and observe which of your own devices auto-connect. Capture their first-burst traffic. Explain what a real attacker gains from this position.' },
+    { id:'64', title:'Binary Diff a Security Patch', desc:'Download two versions of a tool where a security fix was made. Binary-diff them with Diaphora. Identify the exact changed function and explain the vulnerability from the diff alone.' },
+    { id:'65', title:'Cowrie SSH Honeypot', desc:'Deploy Cowrie on a VPS, expose port 22, and run it for a week. Report: total login attempts, top credentials tried, top commands run, and any files attackers downloaded.' },
+    { id:'66', title:'Keylogger + Infostealer Research', desc:'Build a basic keylogger on your own machine. Test which defensive tools detect it. Apply one obfuscation technique and note what changes. Fully remove and verify cleanup.' },
+    { id:'67', title:'Smart Device Teardown', desc:'Physically disassemble a smart device you own. Identify all major ICs, find at least one debug interface (UART/JTAG), and document the communications protocol it uses.' },
+    { id:'68', title:'Polymorphic File + VirusTotal Test', desc:'Write a benign program that produces a different hash each run. Submit five variants to VirusTotal. Note which engines detect it anyway. Write a YARA rule that catches all of them.' },
+    { id:'69', title:'RAT / Backdoor / Malware Study Build', desc:'Build a minimal malware category from scratch in a fully air-gapped VM. Analyze it with a sandbox. Map every MITRE ATT&CK technique it uses. Document its detection signatures.' },
+    { id:'70', title:'Advanced Malware Research', desc:'Study documented worm, ransomware, or kernel rootkit samples in a sandboxed VM with snapshots and no network. Produce a structured analysis from sandbox output and published research.' },
+  ],
+};
+
+const CATEGORY_NAMES = { human: 'Human Vector', high: 'High Level', low: 'Low Level' };
+
+// ── State ──────────────────────────────────────
+let selectedCategory = null;
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
+function getLockedTask() {
+  const stored = JSON.parse(localStorage.getItem('graveyard_task') || 'null');
+  if (!stored) return null;
+  if (stored.date !== todayKey()) return null;
+  return stored;
+}
+
+function lockTask(task, category) {
+  localStorage.setItem('graveyard_task', JSON.stringify({
+    date: todayKey(),
+    task,
+    category,
+  }));
+}
+
+// ── UI ─────────────────────────────────────────
+function selectCategory(el) {
+  if (getLockedTask()) return; // locked — ignore clicks
+  document.querySelectorAll('.tombstone-wrap').forEach(t => t.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedCategory = el.dataset.category;
+  document.getElementById('summonBtn').disabled = false;
+  document.getElementById('summonNote').textContent = `${CATEGORY_NAMES[selectedCategory]} selected — ready to summon`;
+}
+
+function summonTask() {
+  if (!selectedCategory) return;
+  const pool = TASKS[selectedCategory];
+  const task = pool[Math.floor(Math.random() * pool.length)];
+  lockTask(task, selectedCategory);
+  showTask(task, selectedCategory);
+  document.getElementById('summonBtn').disabled = true;
+  document.getElementById('summonNote').textContent = 'Task locked for today. Complete it first.';
+  document.getElementById('lockedBanner').classList.add('show');
+  document.querySelectorAll('.tombstone-wrap').forEach(t => t.style.pointerEvents = 'none');
+}
+
+function showTask(task, category) {
+  document.getElementById('taskIdBg').textContent = task.id;
+  document.getElementById('taskCatLabel').textContent = CATEGORY_NAMES[category];
+  document.getElementById('taskTitle').textContent = task.title;
+  document.getElementById('taskDesc').textContent = task.desc;
+  const card = document.getElementById('taskCard');
+  card.style.display = 'block';
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => { card.classList.add('visible'); });
+  });
+  setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+}
+
+// ── Init: restore locked task on load ──────────
+(function init() {
+  const locked = getLockedTask();
+  if (locked) {
+    // Restore state
+    document.getElementById('summonBtn').disabled = true;
+    document.getElementById('summonNote').textContent = 'Task locked for today. Complete it first.';
+    document.getElementById('lockedBanner').classList.add('show');
+    document.querySelectorAll('.tombstone-wrap').forEach(t => t.style.pointerEvents = 'none');
+    // Highlight the right tombstone
+    const el = document.querySelector(`[data-category="${locked.category}"]`);
+    if (el) el.classList.add('selected');
+    showTask(locked.task, locked.category);
+  }
+})();
+</script>
+</body>
+</html>
